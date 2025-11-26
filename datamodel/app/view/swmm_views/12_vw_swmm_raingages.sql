@@ -1,19 +1,20 @@
 -- Creates a default raingage for each subcatchment
 CREATE OR REPLACE VIEW tww_app.swmm_vw_raingages AS
 SELECT
-   DISTINCT
-   concat('raingage@' , replace(ca.obj_id, ' ', '_'))::varchar as Name,
+   DISTINCT --Raingages names must be uniques by state
+   concat('raingage@' , replace(ca.obj_id, ' ', '_'))::varchar as Name, -- One ra
   'INTENSITY'::varchar as Format, -- Format in which the rain data are supplied: INTENSITY: each rainfall value is an average rate in inches/hour (or mm/hour) over the recording interval. VOLUME: each rainfall value is the volume of rain that fell in the recording interval (in inches or millimeters). CUMULATIVE: each rainfall value represents the cumulative rainfall that has occurred since the start of the last series of non-zero values (in inches or millimeters).
   '0:15'::varchar as Interval, -- Recording time interval between gage readings in decimal hours or hours:minutes format.
   '1.0'::varchar as SCF,  -- Snow Catch Factor Factor that corrects gage readings for snowfall.
   'TIMESERIES default_tww_raingage_timeserie'::varchar as Source, -- Source of rainfall data; either TIMESERIES for user-defined time series data or FILE for an external data file. see Rain Gage Properties of SWMM Documentation for furhter information.
   st_centroid(perimeter_geometry)::geometry(Point, {SRID}) as geom,
-  state,
+  state, --For the selection of the state to be exported
   CASE
 		WHEN _function_hierarchic in (5062, 5064, 5066, 5068, 5069, 5070, 5071, 5072, 5074) THEN 'primary'
 		ELSE 'secondary'
-	END as hierarchy,
-  ca.obj_id as obj_id
+  END as hierarchy, 
+  --wn_obj_id as obj_id -- Is used to export only selected network
+  ca.obj_id as obj_id --Temporarily fix, every raingages will be exported in case of selection
 FROM
 (
 SELECT ca.*,'current' as state, wn.obj_id as wn_obj_id, cfhi.vsacode AS _function_hierarchic
